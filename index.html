@@ -310,7 +310,7 @@
         <thead><tr id="pfHead">
           <th class="l srt" data-k="name">종목명<i></i></th><th class="l srt" data-k="account">계좌<i></i></th>
           <th class="l srt" data-k="pay">결제<i></i></th><th class="srt" data-k="qty">보유수량<i></i></th>
-          <th class="srt" data-k="avg">평단가<i></i></th><th class="srt" data-k="price">현재가<i></i></th>
+          <th class="srt" data-k="avg">평단가<i></i></th><th class="srt" data-k="buy">매수금액(원)<i></i></th><th class="srt" data-k="price">현재가<i></i></th>
           <th class="srt" data-k="rate">평가수익률<i></i></th><th class="srt" data-k="pl">평가손익<i></i></th><th class="srt" data-k="eval">평가금액(원)<i></i></th>
           <th class="srt" data-k="weight">비중<i></i></th><th></th>
         </tr></thead>
@@ -583,7 +583,7 @@ function assetColors(){
 function sortHoldings(hs){
   const {key,dir}=pfSort;
   const val=h=>({name:h.name||'',account:h.account||'',pay:h.pay||'현금',
-    qty:+h.qty||0,avg:+h.avg||0,price:+h.price||0,
+    qty:+h.qty||0,avg:+h.avg||0,buy:buyOf(h),price:+h.price||0,
     rate:(rateOf(h)==null?-Infinity:rateOf(h)),pl:evalOf(h)-buyOf(h),eval:evalOf(h),weight:evalOf(h)}[key]);
   const arr=[...hs].sort((a,b)=>{const x=val(a),y=val(b);
     return typeof x==='string'?x.localeCompare(y,'ko'):(x-y);});
@@ -640,7 +640,7 @@ function renderPF(){
 
   const body=document.getElementById('pfBody');
   if(!hs.length){
-    body.innerHTML=`<tr><td colspan="11"><div class="empty"><div class="big">📊</div>보유 종목이 없습니다.<br><b>＋ 종목 추가</b>로 등록하세요.</div></td></tr>`;
+    body.innerHTML=`<tr><td colspan="12"><div class="empty"><div class="big">📊</div>보유 종목이 없습니다.<br><b>＋ 종목 추가</b>로 등록하세요.</div></td></tr>`;
     document.getElementById('pfFoot').innerHTML='';
 	  }else{
 	    body.innerHTML=sortHoldings(hs).map(h=>{
@@ -654,6 +654,7 @@ function renderPF(){
 	        <td class="l">${pay}</td>
         <td>${h.qty?num(+h.qty):'-'}</td>
         <td>${h.avg?(+h.avg).toLocaleString('ko-KR')+unit:'-'}</td>
+        <td>${(h.avg&&h.qty)?won(buyOf(h)):'-'}</td>
         <td>${h.price?(+h.price).toLocaleString('ko-KR')+unit:'-'}</td>
         <td class="${rc}">${r!=null?(r>0?'+':'')+r.toFixed(2)+'%':'-'}</td>
         <td class="${plc}">${(h.avg&&h.price)?wonS(plv):'-'}</td>
@@ -661,7 +662,7 @@ function renderPF(){
         <td><div class="row-act"><button class="icon-btn" onclick="openH('${h.id}')">✎</button><button class="icon-btn" onclick="delH('${h.id}')">🗑</button></div></td>
       </tr>`;
 	    }).join('');
-	    document.getElementById('pfFoot').innerHTML=`<tr><td colspan="7">합계 (평가손익 · 평가금액)</td><td class="${(stockVal-seed)>=0?'pos':'neg'}">${wonS(stockVal-seed)}</td><td>${won(total)}</td><td>100%</td><td></td></tr>`;
+	    document.getElementById('pfFoot').innerHTML=`<tr><td colspan="5">합계 (매수금액 · 평가손익 · 평가금액)</td><td>${won(seed)}</td><td colspan="2"></td><td class="${(stockVal-seed)>=0?'pos':'neg'}">${wonS(stockVal-seed)}</td><td>${won(total)}</td><td>100%</td><td></td></tr>`;
 	  }
 	  const memoHs=hs.filter(h=>(h.memo||'').trim());
 	  document.getElementById('pfMemoList').innerHTML=memoHs.length?memoHs.map(h=>`<div class="rc-item">
