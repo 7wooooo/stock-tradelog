@@ -267,7 +267,8 @@
     <button class="tab" data-tab="jn">📝 매매일지</button>
     <button class="tab" data-tab="rc">🎯 종목 추천</button>
     <button class="tab" data-tab="di">📓 일기장</button>
-    <button class="btn white" id="saveBtn" style="margin-left:auto">💾 저장</button>
+    <button class="btn ghost" id="gitUpdateBtn" style="margin-left:auto">⬆ Git 업데이트</button>
+    <button class="btn white" id="saveBtn">💾 저장</button>
   </div>
   <div id="toast"></div>
   <div class="mode-banner" id="modeBanner"></div>
@@ -551,6 +552,16 @@ function save(){
 async function saveToDisk(){
   try{const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});return r.ok;}catch(e){return false;}
 }
+async function pushToGit(){
+  const r=await fetch('/api/git-update',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({state})
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||!d.ok)throw new Error(d.stderr||d.error||'git update failed');
+  return d;
+}
 let toastTimer=null;
 function toast(msg,err){
   const t=document.getElementById('toast');
@@ -562,6 +573,9 @@ function applyRuntimeMode(){
   document.getElementById('modeBanner').classList.add('on');
   document.getElementById('modeBanner').innerHTML='이 페이지는 <b>폰에서 보는 읽기 전용 버전</b>입니다. 시세와 추천 리포트는 데스크톱 앱 또는 자동화가 `data.json`을 갱신하면 반영됩니다.';
   document.getElementById('saveBtn').textContent='🔒 읽기 전용';
+  document.getElementById('gitUpdateBtn').textContent='🔒 Git 업데이트 불가';
+  document.getElementById('gitUpdateBtn').disabled=true;
+  document.getElementById('gitUpdateBtn').style.opacity=.55;
   document.getElementById('saveReco').disabled=true;
   document.getElementById('saveReco').style.opacity=.55;
   document.getElementById('saveReco').title='호스팅 페이지에서는 직접 저장할 수 없습니다.';
@@ -1155,6 +1169,20 @@ document.getElementById('saveBtn').onclick=async function(){
   const ok=await saveToDisk();
   this.disabled=false;this.textContent=old;
   ok?toast('저장되었습니다 ✓'):toast('파일 저장 실패 (브라우저에는 저장됨)',true);
+};
+document.getElementById('gitUpdateBtn').onclick=async function(){
+  if(HOSTED_MODE){ toast('호스팅 페이지에서는 Git 업데이트를 실행할 수 없습니다.',true); return; }
+  localStorage.setItem(KEY,JSON.stringify(state));
+  if(!SERVER){ toast('Git 업데이트는 데스크톱 서버로 열었을 때만 가능합니다.',true); return; }
+  const old=this.textContent;this.disabled=true;this.textContent='Git 업데이트 중…';
+  try{
+    await pushToGit();
+    toast('GitHub에 업데이트했습니다 ✓');
+  }catch(e){
+    toast('Git 업데이트 실패: '+(e.message||e),true);
+  }finally{
+    this.disabled=false;this.textContent=old;
+  }
 };
 // Ctrl/Cmd+S
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();document.getElementById('saveBtn').click();}});
